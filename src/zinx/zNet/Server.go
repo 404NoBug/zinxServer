@@ -1,8 +1,10 @@
 package zNet
 
 import (
+	"errors"
 	"fmt"
 	"net"
+	ziface "zinxServer/src/zinx/zIface"
 )
 
 type Server struct {
@@ -21,13 +23,24 @@ type Server struct {
 }
 
 // NewServer 创建一个新的Server实例
-func NewServer(name string) *Server {
+func NewServer(name string) ziface.IServer {
 	s := new(Server)
 	s.Name = name
-	s.IPVersion = "IPv4"
+	s.IPVersion = "tcp4"
 	s.IP = "0.0.0.0"
 	s.Port = 8080
 	return s
+}
+
+// 定义当前客户端所绑定的API回调函数，
+func CallBackToClient(conn *net.TCPConn, data []byte, cnt int) error {
+	// 直接回写数据到客户端
+	_, err := conn.Write(data[:cnt])
+	if err != nil {
+		fmt.Println("CallBackToClient Write error:", err)
+		return errors.New("CallBackToClient Write error")
+	}
+	return nil
 }
 
 // 启动服务器
@@ -48,6 +61,8 @@ func (s *Server) Start() {
 			return
 		}
 		fmt.Println("Start Zinx server success, ", s.Name, " is listening...")
+		var connID uint32
+		connID = 0
 		// 3. 循环接收客户端连接（读写）
 		for {
 			// 如果客户端连接过来，阻塞会返回
@@ -56,24 +71,11 @@ func (s *Server) Start() {
 				fmt.Println("Accept err:", err)
 				continue
 			}
-
-			// 处理连接的业务逻辑
-			go func() {
-				for {
-					buf := make([]byte, 512)
-					n, err := conn.Read(buf)
-					if err != nil {
-						fmt.Println("Read err:", err)
-						continue
-					}
-
-					//回显功能
-					if _, err = conn.Write(buf[:n]); err != nil {
-						fmt.Println("Write back buf err:", err)
-						continue
-					}
-				}
-			}()
+			// 4. 创建一个新的连接对象
+			Connection := NewConnection(conn, connID, CallBackToClient)
+			//启动业务
+			go Connection.Start()
+			connID++
 		}
 	}()
 }
