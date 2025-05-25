@@ -1,7 +1,7 @@
 package main
 
 import (
-	"zinx/zNet"
+	"zinxServer/src/zinx/zNet"
 )
 
 func main() {

@@ -1,6 +1,11 @@
 package zNet
 
-struct Server {
+import (
+	"fmt"
+	"net"
+)
+
+type Server struct {
 	//服务器名称
 	Name string
 	//服务器绑定的IP版本
@@ -13,16 +18,12 @@ struct Server {
 	MaxConn int
 	//当前连接数
 	CurConn int
-	//连接池
-	ConnPool map[int]*Connection
-	//消息管理器
-	MsgMgr *MsgManager
 }
 
 // NewServer 创建一个新的Server实例
 func NewServer(name string) *Server {
 	s := new(Server)
-	s.Name = Name
+	s.Name = name
 	s.IPVersion = "IPv4"
 	s.IP = "0.0.0.0"
 	s.Port = 8080
@@ -33,47 +34,47 @@ func NewServer(name string) *Server {
 func (s *Server) Start() {
 	fmt.Printf("[Zinx] Server Name: %s, Listening on %s:%d\n", s.Name, s.IP, s.Port)
 
-	go func() {
-		// 1. 获取一个TCP Addr
+	// 1. 获取一个TCP Addr
 	addr, err := net.ResolveTCPAddr(s.IPVersion, fmt.Sprintf("%s:%d", s.IP, s.Port))
-	if(err != nil) {
+	if err != nil {
 		fmt.Println("ResolveTCPAddr err:", err)
 		return
 	}
-	// 2. 启动监听
-	listener, err := net.ListenTCP(s.IPVersion, addr)
-	if(err != nil) {
-		fmt.Println("ListenTCP err:", err)
-		return
-	}
-	fmt.Println("Start Zinx server success, ", s.Name, " is listening...")
-	// 3. 循环接收客户端连接（读写）
-	for {
-		// 如果客户端连接过来，阻塞会返回
-		conn, err := listener.AcceptTCP()
-		if(err!= nil) {
-			fmt.Println("Accept err:", err)
-			continue
+	go func() {
+		// 2. 启动监听
+		listener, err := net.ListenTCP(s.IPVersion, addr)
+		if err != nil {
+			fmt.Println("ListenTCP err:", err)
+			return
 		}
-
-		// 处理连接的业务逻辑
-		go func(){
-			for {
-				buf := make([]byte, 512)
-				n, err := conn.Read(buf)
-				if err != nil {
-					fmt.Println("Read err:", err)
-					continue
-				}
-
-				//回显功能
-				if _,err conn.Write(buf[:n]);  err != nil {
-					fmt.Println("Write back buf err:", err)
-					continue
-				}
+		fmt.Println("Start Zinx server success, ", s.Name, " is listening...")
+		// 3. 循环接收客户端连接（读写）
+		for {
+			// 如果客户端连接过来，阻塞会返回
+			conn, err := listener.AcceptTCP()
+			if err != nil {
+				fmt.Println("Accept err:", err)
+				continue
 			}
-		}()
-	}
+
+			// 处理连接的业务逻辑
+			go func() {
+				for {
+					buf := make([]byte, 512)
+					n, err := conn.Read(buf)
+					if err != nil {
+						fmt.Println("Read err:", err)
+						continue
+					}
+
+					//回显功能
+					if _, err = conn.Write(buf[:n]); err != nil {
+						fmt.Println("Write back buf err:", err)
+						continue
+					}
+				}
+			}()
+		}
 	}()
 }
 
