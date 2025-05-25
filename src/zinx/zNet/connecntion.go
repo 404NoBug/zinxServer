@@ -18,6 +18,8 @@ type Connection struct {
 	handleAPI ziface.HandleFunc
 	//告知当前链接已经退出的channel
 	ExitChan chan bool
+	//该链接处理的方法
+	Router ziface.IRouter
 }
 
 // 初始化链接的方法
@@ -46,8 +48,15 @@ func (c *Connection) StartReader() {
 			fmt.Println("[Zinx] ConnID=", c.connID, " Read data error : ", err)
 			continue
 		}
-		// 调用业务处理方法
-		err = c.handleAPI(c.Conn, buf[:n], n)
+
+		//得到当前conn数据的Request数据
+		req := Request{
+			conn: c,
+			data: buf[:n],
+		}
+
+		// 从路由中，找到注册绑定的Conn对应的router调用
+		c.Router.PostHandle(req)
 		if err != nil {
 			fmt.Println("[Zinx] ConnID=", c.connID, " Handle is error", err)
 			break
@@ -67,7 +76,7 @@ func (c *Connection) Start() {
 func (c *Connection) Stop() {
 	fmt.Println("[Zinx] Stop ConnID=", c.connID)
 	//判断当前链接是否关闭
-	if c.isClosed == true {
+	if c.isClosed {
 		return
 	}
 	//设置当前链接已经关闭
