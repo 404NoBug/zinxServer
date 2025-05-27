@@ -1,7 +1,6 @@
 package zNet
 
 import (
-	"errors"
 	"fmt"
 	"net"
 	ziface "zinxServer/src/zinx/zIface"
@@ -28,17 +27,7 @@ type Server struct {
 // 路由功能：给当前的服务器注册一个路由方法，供客户端的链接处理使用
 func (s *Server) AddRouter(router ziface.IRouter) {
 	s.Router = router
-}
-
-// 定义当前客户端所绑定的API回调函数，
-func CallBackToClient(conn *net.TCPConn, data []byte, cnt int) error {
-	// 直接回写数据到客户端
-	_, err := conn.Write(data[:cnt])
-	if err != nil {
-		fmt.Println("CallBackToClient Write error:", err)
-		return errors.New("CallBackToClient Write error")
-	}
-	return nil
+	fmt.Println("[Zinx] Add Router to Server:", s.Name)
 }
 
 // 启动服务器
@@ -69,10 +58,11 @@ func (s *Server) Start() {
 				continue
 			}
 			// 4. 创建一个新的连接对象
-			Connection := NewConnection(conn, connID, CallBackToClient)
+			Connection := NewConnection(conn, connID, s.Router)
+
+			connID++
 			//启动业务
 			go Connection.Start()
-			connID++
 		}
 	}()
 }
@@ -100,5 +90,6 @@ func NewServer(name string) ziface.IServer {
 	s.IPVersion = "tcp4"
 	s.IP = "0.0.0.0"
 	s.Port = 8080
+	s.Router = nil // 初始化Router为nil
 	return s
 }
