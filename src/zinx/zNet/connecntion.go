@@ -55,12 +55,12 @@ func (c *Connection) StartReader() {
 			data: buf[:n],
 		}
 
+		go func(request ziface.IRequest) {
+			c.Router.PreHandle(request)
+			c.Router.Handle(request)
+			c.Router.PostHandle(request)
+		}(&req)
 		// 从路由中，找到注册绑定的Conn对应的router调用
-		c.Router.PostHandle(req)
-		if err != nil {
-			fmt.Println("[Zinx] ConnID=", c.connID, " Handle is error", err)
-			break
-		}
 	}
 }
 
