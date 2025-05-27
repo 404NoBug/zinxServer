@@ -43,7 +43,7 @@ func (c *Connection) StartReader() {
 	for {
 		// 读取数据到buf中，最大读取512字节
 		buf := make([]byte, 512)
-		n, err := c.Conn.Read(buf)
+		_, err := c.Conn.Read(buf)
 		if err != nil {
 			fmt.Println("[Zinx] ConnID=", c.connID, " Read data error : ", err)
 			continue
@@ -52,7 +52,7 @@ func (c *Connection) StartReader() {
 		//得到当前conn数据的Request数据
 		req := Request{
 			conn: c,
-			data: buf[:n],
+			data: buf,
 		}
 
 		go func(request ziface.IRequest) {
